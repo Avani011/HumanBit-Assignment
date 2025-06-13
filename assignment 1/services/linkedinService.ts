@@ -1,230 +1,131 @@
-import apiClient from "./api";
-import { API_CONFIG } from "@/lib/config";
 import type {
+  ApiResponse,
   SuggestionResponse,
   SearchResultsResponse,
   SearchFilters,
   CandidateProfile,
 } from "@/types/api";
 
-/**
- * LinkedIn Sales Navigator API Service
- */
-export const linkedinService = {
-  /**
-   * Get filter suggestions based on query
-   */
-  getSuggestions: async (
-    filterType: string,
+class LinkedInService {
+  private baseUrl: string;
+  private apiKey: string | null;
+  private apiHost: string | null;
+
+  constructor() {
+    this.baseUrl = "/api/linkedin";
+    this.apiKey = process.env.NEXT_PUBLIC_RAPIDAPI_KEY || null;
+    this.apiHost = process.env.NEXT_PUBLIC_RAPIDAPI_HOST || null;
+
+    console.log("API Client initialized with:", {
+      baseUrl: this.baseUrl,
+      hasApiKey: !!this.apiKey,
+      hasApiHost: !!this.apiHost,
+    });
+  }
+
+  async getSuggestions(
+    filterKey: string,
     query: string
-  ): Promise<{
-    success: boolean;
-    suggestions: { id: string; value: string; count?: number }[];
-    error?: string;
-  }> => {
+  ): Promise<ApiResponse<SuggestionResponse>> {
     try {
-      // Try primary endpoint first
-      let response = await apiClient.get<SuggestionResponse>(
-        API_CONFIG.ENDPOINTS.SUGGESTIONS,
-        {
-          type: filterType,
-          query,
-        }
+      const response = await fetch(
+        `${
+          this.baseUrl
+        }/suggestions?filterKey=${filterKey}&query=${encodeURIComponent(query)}`
       );
 
-      // If primary fails, try alternative endpoint
-      if (!response.success) {
-        console.log(
-          "Primary suggestions endpoint failed, trying alternative..."
-        );
-        response = await apiClient.get<SuggestionResponse>(
-          API_CONFIG.ENDPOINTS.ALT_SUGGESTIONS,
-          {
-            type: filterType,
-            query,
-          }
-        );
-      }
-
-      if (!response.success || !response.data) {
+      if (!response.ok) {
+        console.error(`API error: ${response.status} ${response.statusText}`);
         return {
           success: false,
-          suggestions: [],
-          error: response.error?.message || "Failed to fetch suggestions",
+          error: {
+            message: `API responded with status: ${response.status}`,
+            code: "API_ERROR",
+          },
         };
       }
 
-      return {
-        success: true,
-        suggestions: response.data.suggestions,
-      };
+      return await response.json();
     } catch (error) {
-      console.error(`Error fetching ${filterType} suggestions:`, error);
+      console.error("Error fetching suggestions:", error);
       return {
         success: false,
-        suggestions: [],
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          code: "REQUEST_FAILED",
+        },
       };
     }
-  },
+  }
 
-  /**
-   * Search for candidates with filters
-   */
-  searchCandidates: async (
+  async searchCandidates(
     filters: SearchFilters
-  ): Promise<{
-    success: boolean;
-    results: CandidateProfile[];
-    pagination?: {
-      total: number;
-      page: number;
-      pageSize: number;
-      hasMore: boolean;
-    };
-    error?: string;
-  }> => {
+  ): Promise<ApiResponse<SearchResultsResponse>> {
     try {
-      // Transform filters into the format expected by the API
-      const apiFilters = transformFiltersForApi(filters);
+      const response = await fetch(`${this.baseUrl}/search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(filters),
+      });
 
-      // Try primary endpoint first
-      console.log(
-        `Trying primary search endpoint: ${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SEARCH}`
-      );
-      let response = await apiClient.post<SearchResultsResponse>(
-        API_CONFIG.ENDPOINTS.SEARCH,
-        apiFilters
-      );
-
-      // If primary fails, try alternative endpoint
-      if (!response.success) {
-        console.log("Primary search endpoint failed, trying alternative...");
-        response = await apiClient.post<SearchResultsResponse>(
-          API_CONFIG.ENDPOINTS.ALT_SEARCH,
-          apiFilters
-        );
-      }
-
-      if (!response.success || !response.data) {
+      if (!response.ok) {
+        console.error(`API error: ${response.status} ${response.statusText}`);
         return {
           success: false,
-          results: [],
-          error: response.error?.message || "Failed to search candidates",
+          error: {
+            message: `API responded with status: ${response.status}`,
+            code: "API_ERROR",
+          },
         };
       }
 
-      return {
-        success: true,
-        results: response.data.results,
-        pagination: response.data.pagination,
-      };
+      return await response.json();
     } catch (error) {
       console.error("Error searching candidates:", error);
       return {
         success: false,
-        results: [],
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          code: "REQUEST_FAILED",
+        },
       };
     }
-  },
+  }
 
-  /**
-   * Get candidate profile by ID
-   */
-  getCandidateProfile: async (
+  async getCandidateProfile(
     profileId: string
-  ): Promise<{
-    success: boolean;
-    profile?: CandidateProfile;
-    error?: string;
-  }> => {
+  ): Promise<ApiResponse<{ profile: CandidateProfile }>> {
     try {
-      // Try primary endpoint first
-      let response = await apiClient.get<CandidateProfile>(
-        API_CONFIG.ENDPOINTS.PROFILE,
-        {
-          id: profileId,
-        }
-      );
+      const response = await fetch(`${this.baseUrl}/profile/${profileId}`);
 
-      // If primary fails, try alternative endpoint
-      if (!response.success) {
-        console.log("Primary profile endpoint failed, trying alternative...");
-        response = await apiClient.get<CandidateProfile>(
-          API_CONFIG.ENDPOINTS.ALT_PROFILE,
-          {
-            id: profileId,
-          }
-        );
-      }
-
-      if (!response.success || !response.data) {
+      if (!response.ok) {
+        console.error(`API error: ${response.status} ${response.statusText}`);
         return {
           success: false,
-          error: response.error?.message || "Failed to fetch profile",
+          error: {
+            message: `API responded with status: ${response.status}`,
+            code: "API_ERROR",
+          },
         };
       }
 
-      return {
-        success: true,
-        profile: response.data,
-      };
+      return await response.json();
     } catch (error) {
-      console.error("Error fetching candidate profile:", error);
+      console.error("Error fetching profile:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: {
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          code: "REQUEST_FAILED",
+        },
       };
     }
-  },
-};
-
-/**
- * Transform our internal filter format to the API's expected format
- */
-function transformFiltersForApi(filters: SearchFilters): any {
-  const apiFilters: any = {
-    filters: {},
-    pagination: {
-      page: filters.page || 1,
-      pageSize: filters.pageSize || 10,
-    },
-  };
-
-  // Process included filters
-  Object.entries(filters).forEach(([key, values]) => {
-    if (
-      !key.startsWith("excluded") &&
-      key !== "page" &&
-      key !== "pageSize" &&
-      Array.isArray(values) &&
-      values.length > 0
-    ) {
-      apiFilters.filters[key] = {
-        include: values,
-      };
-    }
-  });
-
-  // Process excluded filters
-  Object.entries(filters).forEach(([key, values]) => {
-    if (
-      key.startsWith("excluded") &&
-      Array.isArray(values) &&
-      values.length > 0
-    ) {
-      const originalKey =
-        key.replace("excluded", "").charAt(0).toLowerCase() +
-        key.replace("excluded", "").slice(1);
-
-      if (!apiFilters.filters[originalKey]) {
-        apiFilters.filters[originalKey] = {};
-      }
-
-      apiFilters.filters[originalKey].exclude = values;
-    }
-  });
-
-  return apiFilters;
+  }
 }
+
+export const linkedinService = new LinkedInService();
