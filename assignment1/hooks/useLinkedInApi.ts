@@ -206,7 +206,9 @@ export function useLinkedInApi() {
             return generateMockProfile(profileId);
           }
 
-          return response.data.profile;
+          return response.data && response.data.profile
+            ? response.data.profile
+            : null;
         } else {
           // Use mock data
           // Simulate API delay
