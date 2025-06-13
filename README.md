@@ -55,7 +55,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 - Landing page
 - Job Description Generator using Assignment
 - Filters for Job Description
-- Candidates list relevant to JD generated
+- Candidate list relevant to the JD generated
 
 ## Environment Variables
 
@@ -78,5 +78,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Demo
 
-Assignment 1: Assignment 1: https://human-bit-assignment.vercel.app/
-Assignment 2: https://human-bit-assignment-ohvf.vercel.app/
+Assignment 1: [https://human-bit-assignment.vercel.app/](https://human-bit-assignment.vercel.app/)
+Assignment 2: [https://human-bit-assignment-ohvf.vercel.app/](https://human-bit-assignment-ohvf.vercel.app/)
