@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, Send, RefreshCw } from "lucide-react";
+import { Loader2, Send, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/component/ui/button";
 import { Textarea } from "@/component/ui/textArea";
 import { Input } from "@/component/ui/input";
@@ -27,11 +27,14 @@ export default function FilterPanel({
   const [isGenerating, setIsGenerating] = useState(false);
   const [editedJobDescription, setEditedJobDescription] =
     useState<JobDescription | null>(jobDescription);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateDescription = async () => {
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
+    setError(null);
+
     try {
       const response = await fetch("/api/openai/generate", {
         method: "POST",
@@ -41,13 +44,21 @@ export default function FilterPanel({
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate job description");
-
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate job description");
+      }
+
       onJobDescriptionGenerated(data);
       setEditedJobDescription(data);
     } catch (error) {
       console.error("Error generating job description:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate job description. Please check your OpenAI API key."
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -95,6 +106,12 @@ export default function FilterPanel({
             className="h-24 resize-none"
           />
         </div>
+        {error && (
+          <div className="mt-2 flex items-center text-red-500 text-sm">
+            <AlertCircle className="h-4 w-4 mr-1" />
+            <span>{error}</span>
+          </div>
+        )}
         <Button
           onClick={handleGenerateDescription}
           disabled={isGenerating || !prompt.trim()}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { FilterPanel } from "@/components/filters/FilterPanel";
+import { FiltersPanel } from "@/components/filters/FilterPanel";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
 import { useLinkedInApi } from "@/hooks/useLinkedInApi";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import type { SearchFilters } from "@/types/api";
 export default function CandidateFilterPlatform() {
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilter[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasSearched, setHasSearched] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
   const [useRealApi, setUseRealApi] = useState(false);
 
@@ -24,7 +23,6 @@ export default function CandidateFilterPlatform() {
     isLoading,
     error,
     remainingApiCalls,
-    resetApiCallCounter,
   } = useLinkedInApi();
 
   // Check if API key is configured
@@ -44,7 +42,7 @@ export default function CandidateFilterPlatform() {
 
   const clearAllFilters = () => {
     setSelectedFilters([]);
-    setHasSearched(false);
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   const handleUseRealApiChange = (value: boolean) => {
@@ -87,7 +85,6 @@ export default function CandidateFilterPlatform() {
     console.log("Performing search with real API:", useRealApi);
     const filters = prepareSearchFilters();
     searchCandidates(filters, useRealApi);
-    setHasSearched(true);
   }, [prepareSearchFilters, searchCandidates, selectedFilters, useRealApi]);
 
   const handleLoadMore = useCallback(() => {
@@ -123,7 +120,7 @@ export default function CandidateFilterPlatform() {
       )}
 
       <div className="flex flex-col lg:flex-row">
-        <FilterPanel
+        <FiltersPanel
           selectedFilters={selectedFilters}
           onFiltersChange={handleFiltersChange}
           useRealApi={useRealApi}

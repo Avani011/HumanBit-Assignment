@@ -23,7 +23,7 @@ export function FilterInput({
       <div className="relative">
         <Label
           htmlFor={filterKey}
-          className="text-sm font-medium text-gray-300 mb-2 block flex items-center"
+          className="text-sm font-medium text-gray-300 mb-2 flex items-center"
         >
           <Icon className="w-4 h-4 mr-2" />
           {label}

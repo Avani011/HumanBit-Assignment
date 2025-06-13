@@ -8,7 +8,6 @@ import { filterConfig } from "@/lib/filterConfig";
 import { useLinkedInApi } from "@/hooks/useLinkedInApi";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { debounce } from "@/lib/utils";
 import type {
   FilterState,
   FilterSuggestion,
@@ -16,7 +15,7 @@ import type {
 } from "@/types/filters";
 import { mockSuggestions as mockSuggestionsData } from "@/data/mockData";
 
-export function FilterPanel({
+export function FiltersPanel({
   selectedFilters,
   onFiltersChange,
   useRealApi,
@@ -37,13 +36,8 @@ export function FilterPanel({
     seniorityLevel: { query: "", suggestions: [], showSuggestions: false },
   });
 
-  const {
-    getSuggestions,
-    error,
-    apiCallsCount,
-    remainingApiCalls,
-    resetApiCallCounter,
-  } = useLinkedInApi();
+  const { getSuggestions, error, apiCallsCount, remainingApiCalls } =
+    useLinkedInApi();
   const [apiError, setApiError] = useState<string | null>(null);
 
   // Update error state when API error changes
@@ -61,10 +55,10 @@ export function FilterPanel({
         const suggestions = await getSuggestions(filterKey, query);
 
         if (suggestions.length > 0) {
-          setFilterStates((prev) => ({
-            ...prev,
+          setFilterStates((prevState: FilterState) => ({
+            ...prevState,
             [filterKey]: {
-              ...prev[filterKey],
+              ...prevState[filterKey],
               suggestions,
               showSuggestions: true,
             },
@@ -79,86 +73,102 @@ export function FilterPanel({
 
   // Create debounced version of fetchSuggestions (500ms delay)
   const debouncedFetchSuggestions = useCallback(
-    debounce((filterKey: string, query: string) => {
-      fetchSuggestions(filterKey, query);
-    }, 500),
+    (filterKey: string, query: string) => {
+      const debouncedFn = () => {
+        fetchSuggestions(filterKey, query);
+      };
+
+      setTimeout(debouncedFn, 500);
+    },
     [fetchSuggestions]
   );
 
-  const updateFilterQuery = (filterKey: string, query: string) => {
-    setFilterStates((prev) => ({
-      ...prev,
-      [filterKey]: {
-        ...prev[filterKey],
-        query,
-        showSuggestions: query.length > 0,
-      },
-    }));
-
-    if (query.length > 0) {
-      // Always use mock data for immediate UI responsiveness
-      const mockSuggestions = (mockSuggestionsData[filterKey] || [])
-        .filter((s) => s.value.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 5);
-
-      setFilterStates((prev) => ({
-        ...prev,
+  const updateFilterQuery = useCallback(
+    (filterKey: string, query: string) => {
+      setFilterStates((prevState: FilterState) => ({
+        ...prevState,
         [filterKey]: {
-          ...prev[filterKey],
-          suggestions: mockSuggestions,
-          showSuggestions: true,
+          ...prevState[filterKey],
+          query,
+          showSuggestions: query.length > 0,
         },
       }));
 
-      // Only fetch from API if real API is enabled
-      if (useRealApi) {
-        debouncedFetchSuggestions(filterKey, query);
+      if (query.length > 0) {
+        // Always use mock data for immediate UI responsiveness
+        const mockSuggestions = (mockSuggestionsData[filterKey] || [])
+          .filter((s) => s.value.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 5);
+
+        setFilterStates((prevState: FilterState) => ({
+          ...prevState,
+          [filterKey]: {
+            ...prevState[filterKey],
+            suggestions: mockSuggestions,
+            showSuggestions: true,
+          },
+        }));
+
+        // Only fetch from API if real API is enabled
+        if (useRealApi) {
+          debouncedFetchSuggestions(filterKey, query);
+        }
       }
-    }
-  };
+    },
+    [useRealApi, debouncedFetchSuggestions]
+  );
 
-  const addFilter = (
-    filterKey: string,
-    suggestion: FilterSuggestion,
-    type: "include" | "exclude"
-  ) => {
-    const exists = selectedFilters.find(
-      (f) => f.id === suggestion.id && f.category === filterKey
-    );
-    if (!exists) {
-      const newFilters = [
-        ...selectedFilters,
-        {
-          id: suggestion.id,
-          value: suggestion.value,
-          type,
-          category: filterKey,
+  const addFilter = useCallback(
+    (
+      filterKey: string,
+      suggestion: FilterSuggestion,
+      type: "include" | "exclude"
+    ) => {
+      const exists = selectedFilters.find(
+        (f) => f.id === suggestion.id && f.category === filterKey
+      );
+      if (!exists) {
+        const newFilters = [
+          ...selectedFilters,
+          {
+            id: suggestion.id,
+            value: suggestion.value,
+            type,
+            category: filterKey,
+          },
+        ];
+        onFiltersChange(newFilters);
+      }
+
+      setFilterStates((prevState: FilterState) => ({
+        ...prevState,
+        [filterKey]: {
+          ...prevState[filterKey],
+          query: "",
+          suggestions: [],
+          showSuggestions: false,
         },
-      ];
+      }));
+    },
+    [selectedFilters, onFiltersChange]
+  );
+
+  const removeFilter = useCallback(
+    (filterId: string, category: string) => {
+      const newFilters = selectedFilters.filter(
+        (f) => !(f.id === filterId && f.category === category)
+      );
       onFiltersChange(newFilters);
-    }
+    },
+    [selectedFilters, onFiltersChange]
+  );
 
-    setFilterStates((prev) => ({
-      ...prev,
-      [filterKey]: {
-        ...prev[filterKey],
-        query: "",
-        suggestions: [],
-        showSuggestions: false,
-      },
-    }));
-  };
-
-  const removeFilter = (filterId: string, category: string) => {
-    const newFilters = selectedFilters.filter(
-      (f) => !(f.id === filterId && f.category === category)
-    );
-    onFiltersChange(newFilters);
-  };
-
-  const getFiltersByCategory = (category: string) => {
-    return selectedFilters.filter((f) => f.category === category);
-  };
+  const getFiltersByCategory = useCallback(
+    (category: string) => {
+      return selectedFilters.filter((f) => f.category === category);
+    },
+    [selectedFilters]
+  );
 
   return (
     <div className="lg:w-1/2 xl:w-2/5 p-6 border-r border-[#3A3A3A]">
@@ -179,7 +189,6 @@ export function FilterPanel({
           setUseRealApi={setUseRealApi}
           apiCallsCount={apiCallsCount}
           remainingApiCalls={remainingApiCalls}
-          onResetCounter={resetApiCallCounter}
         />
 
         {/* API Error Alert */}
