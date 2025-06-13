@@ -8,12 +8,22 @@ import {
 import { generateWithOpenAI } from "./openai";
 import { z } from "zod";
 
-// Replace the entire mockLinkedInAPI function with this real API implementation:
+// Define proper types for API responses
+interface SearchFiltersResponse {
+  filters?: Record<string, string>;
+  error?: string;
+}
 
-async function callLinkedInAPI(
+interface SearchPeopleResponse {
+  profiles?: Array<Record<string, unknown>>;
+  error?: string;
+  message?: string;
+}
+
+async function callLinkedInAPI<T>(
   endpoint: string,
-  params: Record<string, any>
-): Promise<any> {
+  params: Record<string, string>
+): Promise<T> {
   const apiKey = process.env.RAPIDAPI_KEY;
   const apiHost =
     process.env.RAPIDAPI_HOST || "linkedin-sales-navigator-data.p.rapidapi.com";
@@ -47,7 +57,7 @@ async function callLinkedInAPI(
       throw new Error(`LinkedIn API error (${response.status}): ${errorText}`);
     }
 
-    return await response.json();
+    return (await response.json()) as T;
   } catch (error) {
     console.error(`Error calling LinkedIn API (${endpoint}):`, error);
     throw error;
@@ -76,12 +86,15 @@ export async function optimizeLinkedInFilters(
 
   try {
     // Get filter IDs from LinkedIn API
-    const filterResponse = await callLinkedInAPI("searchFilters", filterParams);
+    const filterResponse = await callLinkedInAPI<SearchFiltersResponse>(
+      "searchFilters",
+      filterParams
+    );
 
     if (filterResponse && filterResponse.filters) {
       for (const [type, id] of Object.entries(filterResponse.filters)) {
         if (id) {
-          filterIds[type] = id as string;
+          filterIds[type] = id;
         }
       }
     }
@@ -120,7 +133,10 @@ export async function searchLinkedInProfiles(
 
   try {
     // Search for profiles using LinkedIn API
-    const searchResponse = await callLinkedInAPI("searchPeople", searchParams);
+    const searchResponse = await callLinkedInAPI<SearchPeopleResponse>(
+      "searchPeople",
+      searchParams
+    );
 
     if (!searchResponse.profiles || searchResponse.profiles.length < 10) {
       // If we don't have enough results, try fallbacks
@@ -130,15 +146,23 @@ export async function searchLinkedInProfiles(
 
           if (fallbacks) {
             for (const fallback of fallbacks) {
-              const fallbackParams = { ...searchParams, location: fallback };
-              // Remove locationId if we're using a fallback location
-              delete fallbackParams.locationId;
+              // Create a new params object for the fallback
+              const fallbackParams = { ...searchParams };
+
+              // Replace the location value with the fallback
+              fallbackParams.location = fallback;
+
+              // Important: Remove locationId if it exists when using a fallback location
+              if (fallbackParams.locationId) {
+                delete fallbackParams.locationId;
+              }
 
               try {
-                const fallbackResponse = await callLinkedInAPI(
-                  "searchPeople",
-                  fallbackParams
-                );
+                const fallbackResponse =
+                  await callLinkedInAPI<SearchPeopleResponse>(
+                    "searchPeople",
+                    fallbackParams
+                  );
 
                 if (
                   fallbackResponse.profiles &&
@@ -170,24 +194,25 @@ export async function searchLinkedInProfiles(
   }
 }
 
-// Add a helper function to map API response to our LinkedInProfile type:
-
+// Helper function to map API response to our LinkedInProfile type
 function mapApiProfilesToLinkedInProfiles(
-  apiProfiles: any[]
+  apiProfiles: Array<Record<string, unknown>>
 ): LinkedInProfile[] {
   return apiProfiles.map((profile) => ({
-    id: profile.id || `profile_${Math.random().toString(36).substring(2, 11)}`,
-    name: profile.name || "Unknown",
-    headline: profile.headline || "",
-    company: profile.company || "",
-    location: profile.location || "",
-    profileUrl: profile.profileUrl || "",
+    id:
+      (profile.id as string) ||
+      `profile_${Math.random().toString(36).substring(2, 11)}`,
+    name: (profile.name as string) || "Unknown",
+    headline: (profile.headline as string) || "",
+    company: (profile.company as string) || "",
+    location: (profile.location as string) || "",
+    profileUrl: (profile.profileUrl as string) || "",
     skills: Array.isArray(profile.skills)
-      ? profile.skills
+      ? profile.skills.map((skill) => String(skill))
       : typeof profile.skills === "string"
-      ? profile.skills.split(",")
+      ? (profile.skills as string).split(",")
       : [],
-    connectionDegree: profile.connectionDegree || 3,
+    connectionDegree: Number(profile.connectionDegree) || 3,
   }));
 }
 
