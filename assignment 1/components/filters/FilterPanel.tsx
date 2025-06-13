@@ -14,6 +14,7 @@ import type {
   FiltersPanelProps,
 } from "@/types/filters";
 import { mockSuggestions as mockSuggestionsData } from "@/data/mockData";
+import { ApiTest } from "@/components/api/api-test";
 
 export function FiltersPanel({
   selectedFilters,
@@ -190,6 +191,11 @@ export function FiltersPanel({
           apiCallsCount={apiCallsCount}
           remainingApiCalls={remainingApiCalls}
         />
+
+        {/* API Test */}
+        <div className="mb-6">
+          <ApiTest />
+        </div>
 
         {/* API Error Alert */}
         {apiError && useRealApi && (
