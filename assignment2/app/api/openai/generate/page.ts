@@ -5,6 +5,14 @@ import { z } from "zod";
 
 export async function POST(req: Request) {
   try {
+    // Check if OpenAI API key is defined
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "OPENAI_API_KEY is not defined in environment variables" },
+        { status: 500 }
+      );
+    }
+
     const { prompt } = await req.json();
 
     if (!prompt) {

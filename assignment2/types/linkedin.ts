@@ -27,3 +27,10 @@ export interface LinkedInProfile {
   skills: string[];
   connectionDegree: number;
 }
+
+export interface ApiResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: unknown;
+}

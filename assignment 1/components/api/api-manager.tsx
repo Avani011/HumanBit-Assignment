@@ -1,15 +1,13 @@
 "use client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Wifi, Database, RotateCcw } from "lucide-react";
+import { AlertTriangle, Wifi, Database } from "lucide-react";
 
 interface ApiManagerProps {
   useRealApi: boolean;
   setUseRealApi: (value: boolean) => void;
   apiCallsCount: number;
   remainingApiCalls: number;
-  onResetCounter?: () => void;
 }
 
 export function ApiManager({
@@ -17,7 +15,6 @@ export function ApiManager({
   setUseRealApi,
   apiCallsCount,
   remainingApiCalls,
-  onResetCounter,
 }: ApiManagerProps) {
   const handleToggleChange = (checked: boolean) => {
     setUseRealApi(checked);
@@ -78,21 +75,8 @@ export function ApiManager({
       {useRealApi && remainingApiCalls < 5 && (
         <div className="mt-2 text-xs text-amber-400 flex items-center">
           <AlertTriangle className="w-3 h-3 mr-1" />
-          Warning: You're running low on API calls. Consider using mock data.
-        </div>
-      )}
-
-      {onResetCounter && (
-        <div className="mt-3 pt-3 border-t border-[#3A3A3A]">
-          <Button
-            onClick={onResetCounter}
-            variant="outline"
-            size="sm"
-            className="text-xs border-[#3A3A3A] hover:bg-[#3A3A3A] text-gray-400"
-          >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Reset Counter (Dev)
-          </Button>
+          Warning: You&#39;re running low on API calls. Consider using mock
+          data.
         </div>
       )}
     </div>

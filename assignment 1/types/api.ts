@@ -78,4 +78,6 @@ export interface SearchFilters {
   excludedSeniorityLevel?: string[];
   page?: number;
   pageSize?: number;
+  // Add index signature to allow string indexing
+  [key: string]: string[] | number | undefined;
 }
