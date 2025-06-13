@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import FilterPanel from "./FilterPanel";
-import ResultsPanel from "./ResultsPanel";
+import ResultPanel from "./ui/ResultPanel";
 import type { JobDescription } from "@/types/job";
 import type { LinkedInProfile } from "@/types/linkedin";
 
@@ -99,7 +99,7 @@ export default function SplitPanel({
           transition={{ delay: 0.4 }}
           className="glassmorphism rounded-lg p-6"
         >
-          <ResultsPanel
+          <ResultPanel
             profiles={currentProfiles}
             loading={isSearching}
             currentPage={currentPage}
