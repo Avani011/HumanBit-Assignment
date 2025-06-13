@@ -7,7 +7,7 @@ import { Button } from "@/component/ui/button";
 import SplitPanel from "./SplitPanel";
 import type { JobDescription } from "@/types/job";
 
-export default function LandingPage() {
+export default function Landing() {
   const [started, setStarted] = useState(false);
   const [jobDescription, setJobDescription] = useState<JobDescription | null>(
     null
