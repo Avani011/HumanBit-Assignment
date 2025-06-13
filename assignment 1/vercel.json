@@ -1,9 +1,0 @@
-{
-  "outputDirectory": ".next",
-  "routes": [
-    {
-      "src": "/api/linkedin/(.*)",
-      "dest": "/api/linkedin/$1"
-    }
-  ]
-}
